@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <signal.h>
 #include <gmp.h> 
  
 #define TRUE 1
@@ -9,6 +12,7 @@
 mpz_t* factors;
 int nrOfFactors;
 mpz_t limit;
+int primesCleared;
  
 void addToFactors(mpz_t factor){
  
@@ -255,42 +259,67 @@ void printFactors(){
     }
     printf("\n");
 }
+
+void interruptHandler(int sig){
+
+    //printf("Got killed, primes cleared so far: %d\n", primesCleared);
+    int i;
+    for(i = 0; i < 100 - primesCleared; i++){
+        printf("fail\n\n");
+    }  
+    exit(0);
+}
+
  
 int main(void){
+    int pid;
+    pid = fork();
+    primesCleared = 0;
  
-    nrOfFactors = 0;
-    factors = (mpz_t*)malloc(sizeof(mpz_t)*150);
-    initArray(factors, 150);
-    
-    mpz_init(limit);
-                        
-                        //158456325028528675187087900672  97  bits best
-                        //2535301200456458802993406410752 100 bits
-                        //19807040628566084398385987584   93  bits
-                        //2475880078570760549798248448    90  bits
-                        //650000000000000000000000000    ~90  bits java
-                        //77371252455336267181195264      85  bits
-    mpz_set_str(limit, "650000000000000000000000000", 10);
- 
-    mpz_t compositeNumber;
-    mpz_init(compositeNumber);
-    
-    char inputBuffer[150];
- 
-    while(fgets(inputBuffer, 150, stdin)){
-        mpz_set_str(compositeNumber, inputBuffer, 10);  
-        if(factorThis(compositeNumber)){
-            printFactors();
-        }
-        else{
-            printf("fail\n\n");
-        }
-        nrOfFactors = 0;
+    if(pid == 0){
+        sleep(14);
+        //printf("Killing!\n");
+        kill(getppid(), SIGINT);
+        return EXIT_SUCCESS;
     }
- 
-    //factorThis(test);
-    //printFactors();
- 
-    return EXIT_SUCCESS;
+    else{
+        
+        signal(SIGINT, interruptHandler);
+        nrOfFactors = 0;
+        factors = (mpz_t*)malloc(sizeof(mpz_t)*150);
+        initArray(factors, 150);
+        
+        mpz_init(limit);
+                            
+                            //158456325028528675187087900672  97  bits best
+                            //2535301200456458802993406410752 100 bits
+                            //19807040628566084398385987584   93  bits
+                            //2475880078570760549798248448    90  bits
+                            //650000000000000000000000000    ~90  bits java
+                            //77371252455336267181195264      85  bits
+        mpz_set_str(limit, "2535301200456458802993406410752", 10);
+     
+        mpz_t compositeNumber;
+        mpz_init(compositeNumber);
+        
+        char inputBuffer[150];
+     
+        while(fgets(inputBuffer, 150, stdin)){
+            mpz_set_str(compositeNumber, inputBuffer, 10);  
+            if(factorThis(compositeNumber)){
+                printFactors();
+            }
+            else{
+                printf("fail\n\n");
+            }
+            primesCleared++;
+            nrOfFactors = 0;
+        }
+     
+        //factorThis(test);
+        //printFactors();
+     
+        return EXIT_SUCCESS;
+    }
  
 }
