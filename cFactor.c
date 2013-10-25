@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <signal.h>
+#include <time.h>
+#include <stdint.h>
 #include <gmp.h> 
  
 #define TRUE 1
@@ -148,8 +150,12 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
     unsigned int i;
 
     int limitC = 0;
-    int limit = 34500;
-    while(mpz_cmp_ui(d, 1) == 0 && limitC < limit){
+    int limit = 7500;
+
+    clock_t start = clock();
+    clock_t stop;
+    clock_t elapsed;
+    while(mpz_cmp_ui(d, 1) == 0){ //&& limitC < limit){
         mpz_set(x, y);
         
         for(i = 0; mpz_cmp_ui(r, i) > 0; i++){
@@ -158,7 +164,14 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
         
         mpz_set_ui(k, 0);
        
-        while((mpz_cmp(k, r) < 0) && (mpz_cmp_ui(d, 1) == 0) && (limitC < limit)){
+        while((mpz_cmp(k, r) < 0) && (mpz_cmp_ui(d, 1) == 0)){ //&& (limitC < limit)){
+            stop = clock();
+            elapsed = (stop - start);
+
+            if(elapsed > CLOCKS_PER_SEC/10.0){
+                mpz_set_ui(res, 0);
+                return;
+            }
             mpz_set(ys, y);
             mpz_sub(minVal, r, k);
             min(m, minVal, minVal);
@@ -173,7 +186,7 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
             
             mpz_gcd(d, q, compositeNumber);
             mpz_add(k, k, m);
-                        limitC++;
+            limitC++;
         }
         
         mpz_mul_ui(r, r, 2);
@@ -277,7 +290,7 @@ int main(void){
     primesCleared = 0;
  
     if(pid == 0){
-        sleep(14);
+        usleep(14900000);
         //printf("Killing!\n");
         kill(getppid(), SIGINT);
         return EXIT_SUCCESS;
@@ -314,6 +327,11 @@ int main(void){
             }
             primesCleared++;
             nrOfFactors = 0;
+        }
+
+        while(TRUE){
+            printf("Doing nothing\n");
+            sleep(1);        
         }
      
         //factorThis(test);
