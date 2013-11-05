@@ -9,13 +9,24 @@
  
 #define TRUE 1
 #define FALSE 0
+// To be used in pseudo random generator function f_rho
 #define RHO 1 
 
+/* Will hold the factors of number to be factored,
+   reset between each run. */
 mpz_t* factors;
 int nrOfFactors;
-mpz_t limit;
 int primesCleared;
  
+/*
+    Adds a factor to factors.
+
+    Args:
+        @factor - Factor to be added to factors array.
+
+    Returns: -
+
+*/
 void addToFactors(mpz_t factor){
  
     mpz_set(factors[nrOfFactors], factor);
@@ -23,6 +34,16 @@ void addToFactors(mpz_t factor){
  
 }
  
+/*
+    Performs trial division on compositeNumber.
+    Will divide out factors found.
+
+    Args: 
+        @compositeNumber - Integer to be factored.
+
+    Returns: - 
+
+*/
 void trialDivision(mpz_t compositeNumber){
  
     mpz_t test_prime;
@@ -34,26 +55,46 @@ void trialDivision(mpz_t compositeNumber){
     mpz_init(mod_test_prime);
  
     mpz_set_ui(test_prime, 2);
-    mpz_set_ui(upper_bound, 20000);
- 
+    mpz_set_ui(upper_bound, 1000);
+    
+    // Stop when current prime to be tested becomes greater than upper_bound 
     while(mpz_cmp(test_prime, upper_bound) <= 0){
-        //TODO square root something
+        
+        // If compositeNumber is a prime, there is no need to continue factorizing
         if(mpz_probab_prime_p(compositeNumber, 2)){
             return;
         }
  
+        // Check if test_prime is a factor of compositeNumber
         mpz_mod(mod_test_prime, compositeNumber, test_prime);
+        // If it was a factor
         if(mpz_cmp_ui(mod_test_prime, 0) == 0){
             addToFactors(test_prime);
+            // Remove the found factor from compositeNumber
             mpz_fdiv_q(compositeNumber, compositeNumber, test_prime);
         }
         else{
+            // If it wasn't a factor, time to move on to the next prime
             mpz_nextprime(test_prime, test_prime);
         }
     }
  
 }
  
+/*
+
+    Pseudo random function used in Pollard rho.
+    Performs the function f(x) = x^2 + a mod n.
+    Overwrites x with the result.
+
+    Args: 
+        @x - Used as in function above, will be overwritten by result.
+        @n - Used as in function above.
+        @a - Used as in function above.
+
+    Returns: -
+
+*/
 void f_rho(mpz_t x, mpz_t n, unsigned int a){
  
     mpz_pow_ui(x, x, 2);
@@ -62,10 +103,28 @@ void f_rho(mpz_t x, mpz_t n, unsigned int a){
  
 }
  
+/*
+
+    Exponential factoring algorithm. Tries to find a factor
+    of compositeNumber. If it successfully finds a factor,
+    the factor will be overwritten into res. Otherwise
+    res will be overwritten by 0.
+    Uses Floyd's cycle detection.
+
+    Args:
+        @compositeNumber - Integer to be factored.
+        @res - Holder for result.
+
+    Returns: -
+
+*/
 void pollardRhoStd(mpz_t compositeNumber, mpz_t res){
  
     unsigned int j = 0;
+
+    // The tortoise
     mpz_t x;
+    // The hare
     mpz_t y;
     mpz_t d;
     
@@ -77,21 +136,26 @@ void pollardRhoStd(mpz_t compositeNumber, mpz_t res){
     mpz_set_ui(y, 2);
     mpz_set_ui(d, 1);
  
-    while(j < 205000){
+    while(TRUE){
+        // Advance tortoise one step, hare two steps
         f_rho(x, compositeNumber, 1);
         f_rho(y, compositeNumber, 1);
         f_rho(y, compositeNumber, 1);
     
+        // Check if a cycle has been found
         mpz_sub(d, x, y);
         mpz_abs(d, d);
         mpz_gcd(d, d, compositeNumber);
  
-        j++;
+        // Cycle was found (-> factor was probably found)
         if(mpz_cmp_ui(d, 1) != 0){
+            // Make sure that the factor doesn't equal compositeNumber
             if(mpz_cmp(d, compositeNumber) != 0){
                 mpz_set(res, d);
                 return;
             }
+            // If the factor was equal to compositeNumber,
+            // the algorithm has failed.
             else{
                 mpz_set_ui(res, 0);
                 return;
@@ -100,11 +164,24 @@ void pollardRhoStd(mpz_t compositeNumber, mpz_t res){
         
     }
     
+    // A cycle was not found in reasonable time
     mpz_set_ui(res, 0);
     return;
  
 }
 
+/*
+    Puts the min(a,b) into res.
+    If a equals b, res will be set to b.
+
+    Args:
+        @a - to be compared with b
+        @b - to be compared with a
+        @res - to be overwritten bi min(a,b)
+
+    Returns: -
+
+*/
 void min(mpz_t a, mpz_t b, mpz_t res){
 
     if(mpz_cmp(a, b) < 0)
@@ -114,6 +191,21 @@ void min(mpz_t a, mpz_t b, mpz_t res){
 
 }
 
+/*
+
+    Exponential factoring algorithm. Tries to find a factor
+    of compositeNumber. If it successfully finds a factor,
+    the factor will be overwritten into res. Otherwise
+    res will be overwritten by 0.
+    Uses Brent's cycle detection.
+
+    Args:
+        @compositeNumber - Integer to be factored.
+        @res - Holder for result.
+
+    Returns: -
+    
+*/
 void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
 
     mpz_t x;
@@ -195,6 +287,10 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
     return;
 }
 
+/*
+    This function 
+
+*/
 int factorThis(mpz_t compositeNumber){
     
     trialDivision(compositeNumber);
@@ -206,8 +302,8 @@ int factorThis(mpz_t compositeNumber){
             return TRUE;
         }
 
-        //pollardRhoStd(compositeNumber, res);
-        pollardRhoBrent(compositeNumber, res);     
+        pollardRhoStd(compositeNumber, res);
+        //pollardRhoBrent(compositeNumber, res);     
 
         if(mpz_cmp_ui(res, 0) == 0){
             return FALSE;    
@@ -255,7 +351,7 @@ int main(void){
     
     int pid;
     
-    pid = fork();
+    /*pid = fork();
     primesCleared = 0;
     if(pid == 0){
         usleep(14900000);
@@ -264,7 +360,7 @@ int main(void){
         return EXIT_SUCCESS;
     }
     else{
-        //signal(SIGINT, interruptHandler);
+        signal(SIGINT, interruptHandler);*/
         nrOfFactors = 0;
         factors = (mpz_t*)malloc(sizeof(mpz_t)*150);
         initArray(factors, 150);
@@ -287,6 +383,6 @@ int main(void){
         }
      
         return EXIT_SUCCESS;
-    }
+    
  
 }
