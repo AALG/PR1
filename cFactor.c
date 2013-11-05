@@ -150,12 +150,8 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
     unsigned int i;
 
     int limitC = 0;
-    int limit = 7500;
-
-    clock_t start = clock();
-    clock_t stop;
-    clock_t elapsed;
-    while(mpz_cmp_ui(d, 1) == 0){ //&& limitC < limit){
+    int limit = 34500;
+    while(mpz_cmp_ui(d, 1) == 0 && limitC < limit){
         mpz_set(x, y);
         
         for(i = 0; mpz_cmp_ui(r, i) > 0; i++){
@@ -164,14 +160,7 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
         
         mpz_set_ui(k, 0);
        
-        while((mpz_cmp(k, r) < 0) && (mpz_cmp_ui(d, 1) == 0)){ //&& (limitC < limit)){
-            stop = clock();
-            elapsed = (stop - start);
-
-            if(elapsed > CLOCKS_PER_SEC/10.0){
-                mpz_set_ui(res, 0);
-                return;
-            }
+        while((mpz_cmp(k, r) < 0) && (mpz_cmp_ui(d, 1) == 0) && (limitC < limit)){
             mpz_set(ys, y);
             mpz_sub(minVal, r, k);
             min(m, minVal, minVal);
@@ -186,7 +175,7 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
             
             mpz_gcd(d, q, compositeNumber);
             mpz_add(k, k, m);
-            limitC++;
+                        limitC++;
         }
         
         mpz_mul_ui(r, r, 2);
@@ -229,9 +218,9 @@ int factorThis(mpz_t compositeNumber){
             return TRUE;
         }
  
-        if(mpz_cmp(compositeNumber, limit) > 0){
+        /*if(mpz_cmp(compositeNumber, limit) > 0){
             return FALSE;    
-        }
+        }*/
 
 
         //pollardRhoStd(compositeNumber, res);
@@ -274,7 +263,7 @@ void printFactors(){
 }
 
 void interruptHandler(int sig){
-
+ 
     //printf("Got killed, primes cleared so far: %d\n", primesCleared);
     int i;
     for(i = 0; i < 100 - primesCleared; i++){
@@ -282,13 +271,13 @@ void interruptHandler(int sig){
     }  
     exit(0);
 }
-
  
 int main(void){
+    
     int pid;
+    
     pid = fork();
     primesCleared = 0;
- 
     if(pid == 0){
         usleep(14900000);
         //printf("Killing!\n");
@@ -296,8 +285,7 @@ int main(void){
         return EXIT_SUCCESS;
     }
     else{
-        
-        signal(SIGINT, interruptHandler);
+        //signal(SIGINT, interruptHandler);
         nrOfFactors = 0;
         factors = (mpz_t*)malloc(sizeof(mpz_t)*150);
         initArray(factors, 150);
@@ -310,7 +298,7 @@ int main(void){
                             //2475880078570760549798248448    90  bits
                             //650000000000000000000000000    ~90  bits java
                             //77371252455336267181195264      85  bits
-        mpz_set_str(limit, "2535301200456458802993406410752", 10);
+        mpz_set_str(limit, "650000000000000000000000000", 10);
      
         mpz_t compositeNumber;
         mpz_init(compositeNumber);
@@ -320,18 +308,13 @@ int main(void){
         while(fgets(inputBuffer, 150, stdin)){
             mpz_set_str(compositeNumber, inputBuffer, 10);  
             if(factorThis(compositeNumber)){
-                printFactors();
+                //printFactors();
             }
             else{
                 printf("fail\n\n");
             }
             primesCleared++;
             nrOfFactors = 0;
-        }
-
-        while(TRUE){
-            printf("Doing nothing\n");
-            sleep(1);        
         }
      
         //factorThis(test);
