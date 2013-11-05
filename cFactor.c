@@ -34,7 +34,7 @@ void trialDivision(mpz_t compositeNumber){
     mpz_init(mod_test_prime);
  
     mpz_set_ui(test_prime, 2);
-    mpz_set_ui(upper_bound, 3587);
+    mpz_set_ui(upper_bound, 20000);
  
     while(mpz_cmp(test_prime, upper_bound) <= 0){
         //TODO square root something
@@ -77,7 +77,6 @@ void pollardRhoStd(mpz_t compositeNumber, mpz_t res){
     mpz_set_ui(y, 2);
     mpz_set_ui(d, 1);
  
-    //205000 best
     while(j < 205000){
         f_rho(x, compositeNumber, 1);
         f_rho(y, compositeNumber, 1);
@@ -142,16 +141,13 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
     mpz_set_ui(y, 2);
     mpz_set_ui(d, 1);
     mpz_set_ui(r, 1);
-    // m = 10, fast and two erros m = 5 a little bit slower zero errors
     mpz_set_ui(m, 100);
     mpz_set_ui(q, 1);
     mpz_set_ui(ys, 1);
     mpz_set_ui(temp, 1);
     unsigned int i;
 
-    int limitC = 0;
-    int limit = 34500;
-    while(mpz_cmp_ui(d, 1) == 0 && limitC < limit){
+    while(mpz_cmp_ui(d, 1) == 0){
         mpz_set(x, y);
         
         for(i = 0; mpz_cmp_ui(r, i) > 0; i++){
@@ -160,7 +156,7 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
         
         mpz_set_ui(k, 0);
        
-        while((mpz_cmp(k, r) < 0) && (mpz_cmp_ui(d, 1) == 0) && (limitC < limit)){
+        while((mpz_cmp(k, r) < 0) && (mpz_cmp_ui(d, 1) == 0)){
             mpz_set(ys, y);
             mpz_sub(minVal, r, k);
             min(m, minVal, minVal);
@@ -175,31 +171,23 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
             
             mpz_gcd(d, q, compositeNumber);
             mpz_add(k, k, m);
-                        limitC++;
         }
         
         mpz_mul_ui(r, r, 2);
     }
-     
-     if(limitC == limit){
-        mpz_set_ui(res,0);
-        return;
-    }
 
     if(mpz_cmp(r, compositeNumber) == 0){
-        limitC = 0;
         while(TRUE){
             f_rho(ys, compositeNumber, RHO);
             mpz_sub(temp, x, ys);
             mpz_abs(temp, temp);
             mpz_gcd(d, temp, compositeNumber);
-            if(mpz_cmp_ui(d, 1) != 0 && limitC < 1000)
-                break;
-            limitC++;       
+            if(mpz_cmp_ui(d, 1) != 0)
+                break;    
         }
     }
       
-    if(mpz_cmp(r, compositeNumber) == 0 || limitC == 1000)
+    if(mpz_cmp(r, compositeNumber) == 0)
         mpz_set(res, 0);
     else
         mpz_set(res, d);
@@ -217,11 +205,6 @@ int factorThis(mpz_t compositeNumber){
             addToFactors(compositeNumber);
             return TRUE;
         }
- 
-        /*if(mpz_cmp(compositeNumber, limit) > 0){
-            return FALSE;    
-        }*/
-
 
         //pollardRhoStd(compositeNumber, res);
         pollardRhoBrent(compositeNumber, res);     
@@ -255,16 +238,12 @@ void printFactors(){
     int i;
     for(i = 0; i < nrOfFactors; i++){
         gmp_printf("%Zd\n", factors[i]);
-        /*if(!mpz_probab_prime_p(factors[i], 32)){
-            printf("NO PRIME!\n");
-        } */   
     }
     printf("\n");
 }
 
 void interruptHandler(int sig){
  
-    //printf("Got killed, primes cleared so far: %d\n", primesCleared);
     int i;
     for(i = 0; i < 100 - primesCleared; i++){
         printf("fail\n\n");
@@ -289,16 +268,6 @@ int main(void){
         nrOfFactors = 0;
         factors = (mpz_t*)malloc(sizeof(mpz_t)*150);
         initArray(factors, 150);
-        
-        mpz_init(limit);
-                            
-                            //158456325028528675187087900672  97  bits best
-                            //2535301200456458802993406410752 100 bits
-                            //19807040628566084398385987584   93  bits
-                            //2475880078570760549798248448    90  bits
-                            //650000000000000000000000000    ~90  bits java
-                            //77371252455336267181195264      85  bits
-        mpz_set_str(limit, "650000000000000000000000000", 10);
      
         mpz_t compositeNumber;
         mpz_init(compositeNumber);
@@ -316,9 +285,6 @@ int main(void){
             primesCleared++;
             nrOfFactors = 0;
         }
-     
-        //factorThis(test);
-        //printFactors();
      
         return EXIT_SUCCESS;
     }
