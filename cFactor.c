@@ -208,7 +208,9 @@ void min(mpz_t a, mpz_t b, mpz_t res){
 */
 void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
 
+    // Tortoise
     mpz_t x;
+    // Hare
     mpz_t y;
     mpz_t d;
     mpz_t r;
@@ -240,19 +242,23 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
     unsigned int i;
 
     while(mpz_cmp_ui(d, 1) == 0){
+        // Teleport the tortoise!
         mpz_set(x, y);
         
+        // Advance the hare r steps
         for(i = 0; mpz_cmp_ui(r, i) > 0; i++){
             f_rho(y, compositeNumber, RHO);     
         }
         
         mpz_set_ui(k, 0);
        
+        // While r is less than k AND the gcd did not yeild a factor
         while((mpz_cmp(k, r) < 0) && (mpz_cmp_ui(d, 1) == 0)){
             mpz_set(ys, y);
             mpz_sub(minVal, r, k);
             min(m, minVal, minVal);
             
+            // Try to decrease the number of gcd calls
             for(i = 0; mpz_cmp_ui(minVal, i) > 0; i++){
                 f_rho(y, compositeNumber, RHO);
                 mpz_sub(temp, x, y);
@@ -268,6 +274,8 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
         mpz_mul_ui(r, r, 2);
     }
 
+    // The factor was equally to compositeNumber, meaning pollard
+    // brent failed, time to do regular floyd pollard
     if(mpz_cmp(r, compositeNumber) == 0){
         while(TRUE){
             f_rho(ys, compositeNumber, RHO);
@@ -279,8 +287,10 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
         }
     }
       
+    // Floyd pollard also failed
     if(mpz_cmp(r, compositeNumber) == 0)
         mpz_set(res, 0);
+    // A factor was found
     else
         mpz_set(res, d);
     
@@ -288,7 +298,14 @@ void pollardRhoBrent(mpz_t compositeNumber, mpz_t res){
 }
 
 /*
-    This function 
+    This function tries to find all the prime factors of compositeNumber.
+
+    Args:
+        @compositeNumber - The integer to be factored.
+    
+    Returns:
+        TRUE - If all the factors were (probably) found.
+        FALSE - If it failed to find all of the factors.
 
 */
 int factorThis(mpz_t compositeNumber){
@@ -301,25 +318,40 @@ int factorThis(mpz_t compositeNumber){
             addToFactors(compositeNumber);
             return TRUE;
         }
-
+        
+        // Choose std for Floyd, Brent for Brent
         pollardRhoStd(compositeNumber, res);
         //pollardRhoBrent(compositeNumber, res);     
 
+        // If res is 0 the Pollard algorithm failed
         if(mpz_cmp_ui(res, 0) == 0){
             return FALSE;    
         }
  
+        // Check if the factor provided by Pollard actually is a prime
         if(mpz_probab_prime_p(res, 2)){
             addToFactors(res);    
         }
         else
             return FALSE;
  
+        // Divide out found factor
         mpz_fdiv_q(compositeNumber, compositeNumber, res);
     }
     return FALSE;
 }
  
+/*
+    
+    Initialize an array to be filled with mpz_t.
+
+    Args:
+        array - Array to be initialized.
+        size - Size of array to be initialized.
+
+    Returns: -
+
+*/
 void initArray(mpz_t* array, int size){
  
     int i;
@@ -329,6 +361,15 @@ void initArray(mpz_t* array, int size){
  
 }
  
+/*
+
+    Print factors found in global factors array.
+    Will print as many as indiciated by nrOfFactors.
+
+    Args: -
+    Returns: -
+
+*/
 void printFactors(){
     
     int i;
@@ -338,6 +379,18 @@ void printFactors(){
     printf("\n");
 }
 
+/*
+    
+    This function is called when main receives a SIGINT.
+    Prints out fail on remaining numbers queued to be factored.
+    Terminates program.
+    
+    Args: 
+        sig: Signal received.
+
+    Returns: -
+
+*/
 void interruptHandler(int sig){
  
     int i;
@@ -353,6 +406,7 @@ int main(void){
     
     /*pid = fork();
     primesCleared = 0;
+    // Child process should kill execution after 14.9 s
     if(pid == 0){
         usleep(14900000);
         //printf("Killing!\n");
@@ -370,6 +424,7 @@ int main(void){
         
         char inputBuffer[150];
      
+        // Read number to be factored till there aren't any left
         while(fgets(inputBuffer, 150, stdin)){
             mpz_set_str(compositeNumber, inputBuffer, 10);  
             if(factorThis(compositeNumber)){
